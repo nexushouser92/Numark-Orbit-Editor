@@ -14,9 +14,9 @@ def short(status, d1, d2):
 
 # (seconds from start, label, status, data1, data2)
 TIMELINE = [
-    (10.0, "F1 pad1 nota36 vel3 (azul)", 0x90, 36, 3),
-    (13.0, "F1 pad1 nota36 vel12 (verde)", 0x90, 36, 12),
-    (16.0, "F1 pad1 nota36 vel48 (rojo)", 0x90, 36, 48),
+    (10.0, "F1 pad1 note36 vel3 (blue)", 0x90, 36, 3),
+    (13.0, "F1 pad1 note36 vel12 (green)", 0x90, 36, 12),
+    (16.0, "F1 pad1 note36 vel48 (red)", 0x90, 36, 48),
     (19.0, "F1 pad1 noteoff", 0x80, 36, 0),
 ]
 TIMELINE += [(20.0 + 2 * i, f"F2 CC9 ch1 = {v}", 0xB0, 9, v) for i, v in enumerate((0, 32, 64, 96, 127))]

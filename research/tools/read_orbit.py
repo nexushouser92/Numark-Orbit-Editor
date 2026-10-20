@@ -1,13 +1,13 @@
-# Prueba de SOLO LECTURA del Numark Orbit (Windows, winmm vía ctypes, sin dependencias).
-# Envía únicamente la petición F0 00 01 3F 2B 01 00 00 F7 y guarda la respuesta.
-# No envía nunca el comando de escritura (03).
-# Uso:  python -I leer_orbit.py salida.syx
+# READ-ONLY test of the Numark Orbit (Windows, winmm through ctypes, no dependencies).
+# Sends only the read request F0 00 01 3F 2B 01 00 00 F7 and saves the reply.
+# Never sends the write command (03).
+# Usage:  python -I read_orbit.py output.syx
 import ctypes
 import sys
 import time
 from ctypes import wintypes
 
-PETICION_LECTURA = bytes([0xF0, 0x00, 0x01, 0x3F, 0x2B, 0x01, 0x00, 0x00, 0xF7])
+READ_REQUEST = bytes([0xF0, 0x00, 0x01, 0x3F, 0x2B, 0x01, 0x00, 0x00, 0xF7])
 MIM_DATA, MIM_LONGDATA = 0x3C3, 0x3C4
 CALLBACK_FUNCTION = 0x30000
 MIDIERR_STILLPLAYING = 65
@@ -25,10 +25,10 @@ class MIDIHDR(ctypes.Structure):
 
 class CAPS(ctypes.Structure):
     _fields_ = [("wMid", wintypes.WORD), ("wPid", wintypes.WORD), ("ver", wintypes.UINT),
-                ("name", ctypes.c_wchar * 32), ("resto", ctypes.c_byte * 16)]
+                ("name", ctypes.c_wchar * 32), ("rest", ctypes.c_byte * 16)]
 
 
-def buscar(num_devs, get_caps):
+def find(num_devs, get_caps):
     for i in range(num_devs()):
         c = CAPS()
         get_caps(i, ctypes.byref(c), ctypes.sizeof(c))
@@ -37,28 +37,28 @@ def buscar(num_devs, get_caps):
     return None
 
 
-def main(salida):
-    iid = buscar(w.midiInGetNumDevs, w.midiInGetDevCapsW)
-    oid = buscar(w.midiOutGetNumDevs, w.midiOutGetDevCapsW)
-    if iid is None or oid is None:
-        sys.exit("No se encuentra el puerto 'Numark ORBIT'.")
+def main(output):
+    in_id = find(w.midiInGetNumDevs, w.midiInGetDevCapsW)
+    out_id = find(w.midiOutGetNumDevs, w.midiOutGetDevCapsW)
+    if in_id is None or out_id is None:
+        sys.exit("MIDI port 'Numark ORBIT' not found.")
 
-    recibido, cortos = [], []
+    received, short = [], []
     CB = ctypes.WINFUNCTYPE(None, wintypes.HANDLE, wintypes.UINT, ctypes.c_size_t,
                             ctypes.c_size_t, ctypes.c_size_t)
 
     def callback(h, msg, inst, p1, p2):
         if msg == MIM_LONGDATA:
             hdr = ctypes.cast(p1, ctypes.POINTER(MIDIHDR)).contents
-            recibido.append(ctypes.string_at(hdr.lpData, hdr.dwBytesRecorded))
+            received.append(ctypes.string_at(hdr.lpData, hdr.dwBytesRecorded))
         elif msg == MIM_DATA:
-            cortos.append(p1)
+            short.append(p1)
 
     cbf = CB(callback)
     hin = wintypes.HANDLE()
-    r = w.midiInOpen(ctypes.byref(hin), iid, cbf, 0, CALLBACK_FUNCTION)
+    r = w.midiInOpen(ctypes.byref(hin), in_id, cbf, 0, CALLBACK_FUNCTION)
     if r:
-        sys.exit(f"midiInOpen falló ({r}); ¿otro programa usa el Orbit?")
+        sys.exit(f"midiInOpen failed ({r}); is another program using the Orbit?")
     buffers = []
     for _ in range(4):
         b = ctypes.create_string_buffer(1024)
@@ -69,16 +69,16 @@ def main(salida):
     w.midiInStart(hin)
 
     hout = wintypes.HANDLE()
-    r = w.midiOutOpen(ctypes.byref(hout), oid, 0, 0, 0)
+    r = w.midiOutOpen(ctypes.byref(hout), out_id, 0, 0, 0)
     if r:
-        sys.exit(f"midiOutOpen falló ({r})")
-    ob = ctypes.create_string_buffer(PETICION_LECTURA, len(PETICION_LECTURA))
-    oh = MIDIHDR(lpData=ctypes.cast(ob, ctypes.c_void_p), dwBufferLength=len(PETICION_LECTURA))
+        sys.exit(f"midiOutOpen failed ({r})")
+    ob = ctypes.create_string_buffer(READ_REQUEST, len(READ_REQUEST))
+    oh = MIDIHDR(lpData=ctypes.cast(ob, ctypes.c_void_p), dwBufferLength=len(READ_REQUEST))
     w.midiOutPrepareHeader(hout, ctypes.byref(oh), ctypes.sizeof(oh))
     w.midiOutLongMsg(hout, ctypes.byref(oh), ctypes.sizeof(oh))
 
-    inicio = time.time()
-    while time.time() - inicio < 3 and not recibido:
+    start = time.time()
+    while time.time() - start < 3 and not received:
         time.sleep(0.05)
     time.sleep(0.3)
 
@@ -91,14 +91,14 @@ def main(salida):
         w.midiInUnprepareHeader(hin, ctypes.byref(h), ctypes.sizeof(h))
     w.midiInClose(hin)
 
-    datos = b"".join(recibido)
-    print(f"Mensajes cortos: {len(cortos)}  Bytes SysEx: {len(datos)}")
-    print(datos.hex(" "))
-    if datos:
-        with open(salida, "wb") as f:
-            f.write(datos)
-        print("Guardado en", salida)
+    data = b"".join(received)
+    print(f"Short messages: {len(short)}  SysEx bytes: {len(data)}")
+    print(data.hex(" "))
+    if data:
+        with open(output, "wb") as f:
+            f.write(data)
+        print("Saved to", output)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "dump_orbit.syx")
+    main(sys.argv[1] if len(sys.argv) > 1 else "orbit_dump.syx")

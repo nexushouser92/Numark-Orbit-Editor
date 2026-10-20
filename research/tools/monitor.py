@@ -25,7 +25,7 @@ class MonitorPort(midi_win.WinMidiPort):
 
 def describe(status, d1, d2):
     kind = KINDS.get(status & 0xF0, f"0x{status:02X}")
-    return f"{kind:7} canal {(status & 0x0F) + 1:2}  {d1:3}  {d2:3}"
+    return f"{kind:7} ch {(status & 0x0F) + 1:2}  {d1:3}  {d2:3}"
 
 
 def main(seconds, out, needle="ORBIT"):
@@ -36,7 +36,7 @@ def main(seconds, out, needle="ORBIT"):
         sys.exit(f"Port '{needle}' not found. Inputs: {ins}")
     lines = []
     with MonitorPort(index, out_index) as port:
-        print(f"Grabando {seconds} s desde '{ins[index]}'...", flush=True)
+        print(f"Recording {seconds} s from '{ins[index]}'...", flush=True)
         t0 = time.monotonic()
         end = t0 + seconds
         while time.monotonic() < end:
@@ -47,8 +47,8 @@ def main(seconds, out, needle="ORBIT"):
             lines.append(f"{t - t0:7.3f}  {describe(s, d1, d2)}")
     lines.sort(key=lambda l: float(l.split()[0]))
     with open(out, "w", encoding="utf-8") as f:
-        f.write(f"# puerto: {ins[index]}\n" + "\n".join(lines) + "\n")
-    print(f"{len(lines)} mensajes guardados en {out}")
+        f.write(f"# port: {ins[index]}\n" + "\n".join(lines) + "\n")
+    print(f"{len(lines)} messages saved to {out}")
 
 
 if __name__ == "__main__":

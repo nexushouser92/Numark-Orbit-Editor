@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from orbit_editor import midi_win
 
 TIMELINE = [  # (seconds, label, cc, value)
-    (5, "banco 3", 1, 3), (9, "banco 2", 1, 2), (13, "banco 4", 1, 4), (17, "banco 1", 1, 1),
+    (5, "bank 3", 1, 3), (9, "bank 2", 1, 2), (13, "bank 4", 1, 4), (17, "bank 1", 1, 1),
     (21, "K3", 2, 3), (25, "K2", 2, 2), (29, "K4", 2, 4), (33, "K1", 2, 1),
 ]
 END = 37

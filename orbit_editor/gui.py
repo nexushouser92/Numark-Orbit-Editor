@@ -190,7 +190,7 @@ class App(ctk.CTkFrame):
         plain = dict(height=36, fg_color=CARD_HI, hover_color=EDGE, corner_radius=10, font=(FONT, 13))
         for key, command in (("open", self.open_file), ("save", self.save_file), ("factory", self.load_factory)):
             ctk.CTkButton(actions, text=t(key), width=96, command=command, **plain).pack(side="left", padx=(0, 6))
-        ctk.CTkFrame(actions, fg_color="transparent", width=6).pack(side="left")
+        ctk.CTkFrame(actions, fg_color="transparent", width=6, height=1).pack(side="left")
         self.status_button = ctk.CTkButton(actions, text="", width=330, height=36, corner_radius=18,
                                            font=(FONT, 13, "bold"), command=self.on_status_click)
         self.status_button.pack(side="left")

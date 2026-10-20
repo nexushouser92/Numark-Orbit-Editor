@@ -85,7 +85,7 @@ class CliTests(unittest.TestCase):
         self.opened += 1
         return self.orbit
 
-    def run_cli(self, *argv, answer="SI"):
+    def run_cli(self, *argv, answer="YES"):
         def ask(prompt):
             self.answers.append(prompt)
             return answer
@@ -102,71 +102,71 @@ class CliTests(unittest.TestCase):
         return path
 
     def test_ports(self):
-        self.assertEqual(self.run_cli("puertos"), 0)
+        self.assertEqual(self.run_cli("ports"), 0)
         self.assertIn("  1: Numark ORBIT   <- Orbit", self.output)
         self.assertEqual(self.opened, 0)
 
     def test_read_and_save(self):
-        self.assertEqual(self.run_cli("leer", "-o", self.path("a.json")), 0)
-        self.assertIn("Pad  1: canal  1  nota  36 (C1)", self.output[0])
+        self.assertEqual(self.run_cli("read", "-o", self.path("a.json")), 0)
+        self.assertIn("Pad  1: channel  1  note  36 (C1)", self.output[0])
         self.assertEqual(presets.load(self.path("a.json")), protocol.factory_config())
         self.assertTrue(self.orbit.closed)
 
     def test_backup(self):
-        self.assertEqual(self.run_cli("copia", "--carpeta", self.dir), 0)
-        backup = self.path("Orbit_copia_20261019_230509.syx")
+        self.assertEqual(self.run_cli("backup", "--folder", self.dir), 0)
+        backup = self.path("Orbit_backup_20261019_230509.syx")
         self.assertEqual(presets.load(backup), protocol.factory_config())
 
     def test_show_and_convert(self):
         src = self.preset()
-        self.assertEqual(self.run_cli("convertir", src, self.path("b.syx")), 0)
+        self.assertEqual(self.run_cli("convert", src, self.path("b.syx")), 0)
         self.assertEqual(presets.load(self.path("b.syx")), custom_config())
-        self.assertEqual(self.run_cli("ver", self.path("b.syx")), 0)
-        self.assertIn("color Rojo", self.output[-1])
+        self.assertEqual(self.run_cli("show", self.path("b.syx")), 0)
+        self.assertIn("color Red", self.output[-1])
         self.assertEqual(self.opened, 0)
 
     def test_unknown_extension(self):
-        self.assertEqual(self.run_cli("ver", self.path("x.txt")), 2)
+        self.assertEqual(self.run_cli("show", self.path("x.txt")), 2)
 
     def test_write_simulated_never_opens_the_port(self):
-        self.assertEqual(self.run_cli("escribir", self.preset(), "--simular"), 0)
+        self.assertEqual(self.run_cli("write", self.preset(), "--dry-run"), 0)
         self.assertEqual(self.opened, 0)
         self.assertTrue(self.output[-1].startswith("F0 00 01 3F 2B 03 01 70"))
 
     def test_write_cancelled(self):
-        code = self.run_cli("escribir", self.preset(), "--carpeta", self.dir, answer="no")
+        code = self.run_cli("write", self.preset(), "--folder", self.dir, answer="no")
         self.assertEqual(code, 1)
         self.assertEqual(self.orbit.writes, [])
-        self.assertTrue(os.path.exists(self.path("Orbit_copia_20261019_230509.syx")))
+        self.assertTrue(os.path.exists(self.path("Orbit_backup_20261019_230509.syx")))
 
     def test_write_confirmed(self):
-        code = self.run_cli("escribir", self.preset(), "--carpeta", self.dir, answer=" si ")
+        code = self.run_cli("write", self.preset(), "--folder", self.dir, answer=" yes ")
         self.assertEqual(code, 0)
         self.assertEqual(len(self.answers), 1)
         self.assertEqual(self.orbit.config, custom_config())
-        self.assertEqual(self.output[-1], "Mapeo enviado y verificado.")
+        self.assertEqual(self.output[-1], "Mapping sent and verified.")
         # The backup holds the mapping from before the write.
-        backup = self.path("Orbit_copia_20261019_230509.syx")
+        backup = self.path("Orbit_backup_20261019_230509.syx")
         self.assertEqual(presets.load(backup), protocol.factory_config())
 
     def test_write_verify_failure(self):
         self.orbit = FakeOrbit(apply_writes=False)
-        code = self.run_cli("escribir", self.preset(), "--carpeta", self.dir, "--si")
+        code = self.run_cli("write", self.preset(), "--folder", self.dir, "--yes")
         self.assertEqual(code, 2)
         self.assertEqual(self.answers, [])
-        self.assertIn("distinto", self.output[-1])
+        self.assertIn("different", self.output[-1])
 
     def test_write_invalid_file_opens_nothing(self):
         bad = self.path("bad.json")
         with open(bad, "w") as f:
             f.write("{}")
-        self.assertEqual(self.run_cli("escribir", bad, "--si"), 2)
+        self.assertEqual(self.run_cli("write", bad, "--yes"), 2)
         self.assertEqual(self.opened, 0)
 
     def test_port_missing(self):
         def missing():
             raise midi_win.MidiError("MIDI port 'ORBIT' not found")
-        code = cli.main(["leer"], opener=missing, out=self.output.append)
+        code = cli.main(["read"], opener=missing, out=self.output.append)
         self.assertEqual(code, 2)
         self.assertIn("not found", self.output[-1])
 

@@ -1,119 +1,115 @@
-# Orbit Editor (no oficial) · Numark Orbit MIDI mapping editor
+# Orbit Editor (unofficial) · Numark Orbit MIDI mapping editor
 
-Editor para Windows del mapeo MIDI del controlador **Numark Orbit**, hecho desde cero: cambia el canal,
-la nota o el CC, el modo y el color de cada pad, los knobs y el acelerómetro de los 4 bancos, y lo
-aplica al Orbit al instante.
+A Windows editor for the MIDI mapping of the **Numark Orbit** controller, written from scratch. It
+changes the channel, note or CC, mode and color of every pad, plus the knobs and accelerometer of all
+4 banks, and applies each change to the Orbit right away.
 
 > [!NOTE]
-> Proyecto no oficial, sin relación con Numark ni inMusic. Se ha creado por interoperabilidad, sin
-> copiar código ni recursos del editor original. *Unofficial project, not affiliated with or endorsed
-> by Numark or inMusic.*
+> This is an unofficial project, not affiliated with or endorsed by Numark or inMusic. It was built
+> for interoperability, without copying any code or assets from the original editor.
 
-![Ventana del Orbit Editor](docs/captura.png)
+![Orbit Editor window](docs/screenshot.png)
 
 ---
 
-## Funciones
+## Features
 
-* **Vinculación automática**: detecta el Orbit en cuanto lo conectas, por cable o con su receptor
-  inalámbrico. No hay que elegir ningún puerto.
-* **Vista previa en vivo**: cada cambio se guarda en el Orbit medio segundo después de la última
-  edición, y la app comprueba que se ha guardado bien releyéndolo.
-* **El Orbit manda**: al pulsar un pad en el Orbit, se ilumina en pantalla y queda seleccionado para
-  editarlo. La app también sigue el banco, los botones K y el acelerómetro.
-* **Pads**: canal, nota, modo momentáneo/toggle y color, con una rueda de color, **3 niveles de
-  brillo**, una mezcla rojo·verde·azul de 0 a 3 (64 colores) y 12 colores rápidos.
-* **Knobs K1–K4**: canal, CC y modo absoluto/relativo.
-* **Acelerómetro**: canal y CC de cada eje (izquierda-derecha y arriba-abajo).
-* **Modo escalas**: 14 escalas (mayor, modos, menores, blues, pentatónicas, tríadas), con tónica y
-  octava. Los 16 pads pueden ser cromáticos (se encienden las notas de la escala) o solo notas de la
-  escala. Cada banco tiene su escala y se ilumina con sus propios colores.
-* **Ayudas**: notas consecutivas, mismo canal, color o modo en todo el banco, y copiar un banco.
-* **Presets**: guarda y abre `.json` (incluye las escalas) o `.syx` (volcado SysEx del Orbit).
-* **Español e inglés**, según el idioma de Windows.
+* **Automatic linking**: finds the Orbit as soon as it is plugged in, by cable or through its wireless
+  receiver. No port to choose.
+* **Live preview**: every change is stored in the Orbit half a second after your last edit, and the app
+  reads it back to check that it was stored correctly.
+* **Follows the Orbit**: press a pad on the Orbit and it lights up on screen, selected for editing. The
+  app also follows the bank, the K buttons and the accelerometer.
+* **Pads**: channel, note, momentary/toggle mode and color, with a color wheel, **3 brightness levels**,
+  a 0–3 red·green·blue mix (64 colors) and 12 quick colors.
+* **Knobs K1–K4**: channel, CC and absolute/relative mode.
+* **Accelerometer**: channel and CC of each axis (left-right and up-down).
+* **Scale mode**: 14 scales (major, modes, minors, blues, pentatonics, triads) with root and octave.
+  The 16 pads can be chromatic (scale notes lit) or scale notes only. Each bank has its own scale and
+  lights up in its own colors.
+* **Helpers**: consecutive notes, same channel, color or mode on the whole bank, and bank copy.
+* **Presets**: save and open `.json` (scales included) or `.syx` (the Orbit's own SysEx dump).
+* **English and Spanish**, following your Windows language.
 
-## Requisitos
+## Requirements
 
 * Windows 10 / 11
-* Numark Orbit conectado por cable mini-USB o con su receptor inalámbrico USB.
+* A Numark Orbit connected by mini-USB cable or through its USB wireless receiver.
 
-## Cómo usarlo
+## How to use
 
-1. Descarga `Orbit Editor.exe` desde [Releases](../../releases).
-2. Cierra tu software de DJ: mientras el editor está abierto, el Orbit queda vinculado a él y Windows
-   no deja que otro programa lo use a la vez.
-3. Abre `Orbit Editor.exe`. El botón de estado pasa a **Orbit vinculado** y se carga el mapeo actual
-   del Orbit.
-4. Haz clic en un pad (o púlsalo en el Orbit) y cambia lo que quieras. El Orbit se actualiza solo.
-5. Para volver a la configuración original usa **Fábrica**. Para guardar tu mapeo en un archivo usa
-   **Guardar…**.
+1. Download `Orbit.Editor.exe` from the [Releases](../../releases) page.
+2. Close your DJ software: while the editor is open, the Orbit stays linked to it, and Windows does not
+   let another program use it at the same time.
+3. Run the `.exe`. The status button turns to **Orbit linked** and the Orbit's current mapping is loaded.
+4. Click a pad (or press it on the Orbit) and change anything. The Orbit updates by itself.
+5. Use **Factory** to go back to the factory mapping, and **Save…** to keep your mapping in a file.
 
-### Windows o el antivirus dicen que la app es peligrosa
+### Windows or the antivirus says the app is dangerous
 
-El `.exe` no tiene firma digital, así que Windows SmartScreen muestra "Editor desconocido". Pulsa
-**Más información** → **Ejecutar de todas formas**.
+The `.exe` is not digitally signed, so Windows SmartScreen shows "Unknown publisher". Click
+**More info** → **Run anyway**.
 
-Algunos antivirus marcan como falso positivo las apps hechas con PyInstaller. Cada `.exe` de las
-releases lo compila [GitHub Actions](../../actions) a partir del código de este repositorio, e
-incluye un `SHA256.txt` para comprobar la descarga:
+A few antivirus engines flag apps made with PyInstaller as false positives. Every release `.exe` is
+built by [GitHub Actions](../../actions) from the code in this repository, and each release includes a
+`SHA256.txt` so you can check your download:
 
 ```powershell
-Get-FileHash "Orbit Editor.exe" -Algorithm SHA256
+Get-FileHash "Orbit.Editor.exe" -Algorithm SHA256
 ```
 
-## Límites del Orbit
+## Orbit limitations
 
-* Los LEDs del acelerómetro, de la rueda y de los botones K tienen colores fijos en el firmware. Solo
-  se pueden colorear los pads.
-* El banco y el K activos solo se pueden cambiar desde el propio Orbit; el firmware no acepta que el
-  PC los cambie. La app sigue el banco y el K que elijas en el Orbit.
-* El Orbit no tiene Bluetooth: su conexión inalámbrica es una radio de 2,4 GHz que solo funciona con
-  su receptor USB. Ver [research/INALAMBRICO.md](research/INALAMBRICO.md).
+* The accelerometer, wheel and K button LEDs have fixed colors in the firmware. Only pads can be colored.
+* The active bank and K can only be changed on the Orbit itself; the firmware ignores such requests
+  from the PC. The app follows the bank and K you choose on the Orbit.
+* The Orbit has no Bluetooth: its wireless link is a 2.4 GHz radio that only works with its USB
+  receiver. See [research/WIRELESS.md](research/WIRELESS.md).
 
 ---
 
-## Documentación técnica
+## Technical documentation
 
-* [research/PROTOCOLO.md](research/PROTOCOLO.md): protocolo SysEx del Orbit (lectura, escritura y
-  formato de los 240 bytes), con lo que se ha confirmado en un Orbit real.
-* [research/PLAN.md](research/PLAN.md): arquitectura y plan por fases.
-* [research/INALAMBRICO.md](research/INALAMBRICO.md): opciones de conexión inalámbrica.
+* [research/PROTOCOL.md](research/PROTOCOL.md): the Orbit's SysEx protocol (read, write and the
+  240-byte layout), with everything confirmed on a real Orbit.
+* [research/ARCHITECTURE.md](research/ARCHITECTURE.md): code structure, safety rules and history.
+* [research/WIRELESS.md](research/WIRELESS.md): wireless connection options.
 
-Resumen del protocolo:
+Protocol summary:
 
-| Mensaje | Bytes |
+| Message | Bytes |
 |---|---|
-| Pedir el mapeo | `F0 00 01 3F 2B 01 00 00 F7` |
-| Respuesta del Orbit | `F0 00 01 3F 2B 02 01 70` + 240 bytes + `F7` |
-| Escribir el mapeo | `F0 00 01 3F 2B 03 01 70` + 240 bytes + `F7` |
+| Request the mapping | `F0 00 01 3F 2B 01 00 00 F7` |
+| Orbit's reply | `F0 00 01 3F 2B 02 01 70` + 240 bytes + `F7` |
+| Write the mapping | `F0 00 01 3F 2B 03 01 70` + 240 bytes + `F7` |
 
-Los 240 bytes son 64 pads × (modo·canal, nota, color), 16 knobs × (modo·canal, CC) y 8 ejes ×
-(canal, CC). El color usa 2 bits por componente: `R×16 + G×4 + B`.
+The 240 bytes are 64 pads × (mode·channel, note, color), 16 knobs × (mode·channel, CC) and 8 axes ×
+(channel, CC). Colors use 2 bits per component: `R×16 + G×4 + B`.
 
-## Desarrollo
+## Development
 
 ```bash
 python -m pip install -r requirements.txt
 python -m unittest discover -s tests
-python -m orbit_editor              # abre la ventana
-python -m orbit_editor leer         # herramienta de consola (leer, copia, ver, convertir, escribir)
+python -m orbit_editor              # opens the window
+python -m orbit_editor read         # command-line tool: ports, read, backup, show, convert, write
 ```
 
-Los tests no necesitan el Orbit: usan un Orbit y un `winmm` simulados.
+The tests need no Orbit: they use a simulated Orbit and a fake `winmm.dll`.
 
-| Módulo | Qué hace |
+| Module | Purpose |
 |---|---|
-| `orbit_editor/protocol.py` | Modelo de datos y codificación de los mensajes SysEx |
-| `orbit_editor/colors.py` | Colores, brillo y paleta |
-| `orbit_editor/scales.py` | Modo escalas |
-| `orbit_editor/presets.py` | Archivos `.json` y `.syx` |
-| `orbit_editor/midi_win.py` | MIDI de Windows (`winmm.dll` vía `ctypes`) |
-| `orbit_editor/device.py` | Leer y escribir el mapeo, con verificación |
-| `orbit_editor/link.py` | Vinculación automática y envío en vivo |
-| `orbit_editor/render.py` | Dibujos suavizados con Pillow |
-| `orbit_editor/gui.py` | Ventana (CustomTkinter) |
-| `orbit_editor/cli.py` | Herramienta de consola |
+| `orbit_editor/protocol.py` | Data model and SysEx message encoding |
+| `orbit_editor/colors.py` | Colors, brightness and palette |
+| `orbit_editor/scales.py` | Scale mode |
+| `orbit_editor/presets.py` | `.json` and `.syx` files |
+| `orbit_editor/midi_win.py` | Windows MIDI (`winmm.dll` through `ctypes`) |
+| `orbit_editor/device.py` | Read and write the mapping, with verification |
+| `orbit_editor/link.py` | Automatic linking and live writes |
+| `orbit_editor/render.py` | Anti-aliased drawings with Pillow |
+| `orbit_editor/gui.py` | Main window (CustomTkinter) |
+| `orbit_editor/cli.py` | Command-line tool |
 
-## Licencia
+## License
 
 [MIT](LICENSE)
