@@ -1,0 +1,534 @@
+{
+  "format": "orbit-editor-preset",
+  "version": 1,
+  "banks": [
+    {
+      "pads": [
+        {
+          "channel": 1,
+          "note": 36,
+          "mode": "toggle",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 37,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 38,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 39,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 40,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 41,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 42,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 43,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 44,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 45,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 46,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 47,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 48,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 49,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 50,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 1,
+          "note": 51,
+          "mode": "momentary",
+          "color": 0
+        }
+      ],
+      "knobs": [
+        {
+          "channel": 1,
+          "cc": 1,
+          "mode": "absolute"
+        },
+        {
+          "channel": 1,
+          "cc": 2,
+          "mode": "absolute"
+        },
+        {
+          "channel": 1,
+          "cc": 3,
+          "mode": "absolute"
+        },
+        {
+          "channel": 1,
+          "cc": 4,
+          "mode": "relative"
+        }
+      ],
+      "accelerometer": [
+        {
+          "channel": 1,
+          "cc": 9
+        },
+        {
+          "channel": 1,
+          "cc": 10
+        }
+      ]
+    },
+    {
+      "pads": [
+        {
+          "channel": 2,
+          "note": 36,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 37,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 38,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 39,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 40,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 41,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 42,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 43,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 44,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 45,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 46,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 47,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 48,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 49,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 50,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 2,
+          "note": 51,
+          "mode": "momentary",
+          "color": 0
+        }
+      ],
+      "knobs": [
+        {
+          "channel": 2,
+          "cc": 1,
+          "mode": "absolute"
+        },
+        {
+          "channel": 2,
+          "cc": 2,
+          "mode": "absolute"
+        },
+        {
+          "channel": 2,
+          "cc": 3,
+          "mode": "absolute"
+        },
+        {
+          "channel": 2,
+          "cc": 4,
+          "mode": "relative"
+        }
+      ],
+      "accelerometer": [
+        {
+          "channel": 2,
+          "cc": 9
+        },
+        {
+          "channel": 2,
+          "cc": 10
+        }
+      ]
+    },
+    {
+      "pads": [
+        {
+          "channel": 3,
+          "note": 36,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 37,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 38,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 39,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 40,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 41,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 42,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 43,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 44,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 45,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 46,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 47,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 48,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 49,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 50,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 3,
+          "note": 51,
+          "mode": "momentary",
+          "color": 0
+        }
+      ],
+      "knobs": [
+        {
+          "channel": 3,
+          "cc": 1,
+          "mode": "absolute"
+        },
+        {
+          "channel": 3,
+          "cc": 2,
+          "mode": "absolute"
+        },
+        {
+          "channel": 3,
+          "cc": 3,
+          "mode": "absolute"
+        },
+        {
+          "channel": 3,
+          "cc": 4,
+          "mode": "relative"
+        }
+      ],
+      "accelerometer": [
+        {
+          "channel": 3,
+          "cc": 9
+        },
+        {
+          "channel": 3,
+          "cc": 10
+        }
+      ]
+    },
+    {
+      "pads": [
+        {
+          "channel": 4,
+          "note": 36,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 37,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 38,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 39,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 40,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 41,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 42,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 43,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 44,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 45,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 46,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 47,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 48,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 49,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 50,
+          "mode": "momentary",
+          "color": 0
+        },
+        {
+          "channel": 4,
+          "note": 51,
+          "mode": "momentary",
+          "color": 0
+        }
+      ],
+      "knobs": [
+        {
+          "channel": 4,
+          "cc": 1,
+          "mode": "absolute"
+        },
+        {
+          "channel": 4,
+          "cc": 2,
+          "mode": "absolute"
+        },
+        {
+          "channel": 4,
+          "cc": 3,
+          "mode": "absolute"
+        },
+        {
+          "channel": 4,
+          "cc": 4,
+          "mode": "relative"
+        }
+      ],
+      "accelerometer": [
+        {
+          "channel": 4,
+          "cc": 9
+        },
+        {
+          "channel": 4,
+          "cc": 10
+        }
+      ]
+    }
+  ]
+}
