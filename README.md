@@ -75,41 +75,6 @@ Get-FileHash "Orbit.Editor.exe" -Algorithm SHA256
 * [research/ARCHITECTURE.md](research/ARCHITECTURE.md): code structure, safety rules and history.
 * [research/WIRELESS.md](research/WIRELESS.md): wireless connection options.
 
-Protocol summary:
-
-| Message | Bytes |
-|---|---|
-| Request the mapping | `F0 00 01 3F 2B 01 00 00 F7` |
-| Orbit's reply | `F0 00 01 3F 2B 02 01 70` + 240 bytes + `F7` |
-| Write the mapping | `F0 00 01 3F 2B 03 01 70` + 240 bytes + `F7` |
-
-The 240 bytes are 64 pads × (mode·channel, note, color), 16 knobs × (mode·channel, CC) and 8 axes ×
-(channel, CC). Colors use 2 bits per component: `R×16 + G×4 + B`.
-
-## Development
-
-```bash
-python -m pip install -r requirements.txt
-python -m unittest discover -s tests
-python -m orbit_editor              # opens the window
-python -m orbit_editor read         # command-line tool: ports, read, backup, show, convert, write
-```
-
-The tests need no Orbit: they use a simulated Orbit and a fake `winmm.dll`.
-
-| Module | Purpose |
-|---|---|
-| `orbit_editor/protocol.py` | Data model and SysEx message encoding |
-| `orbit_editor/colors.py` | Colors, brightness and palette |
-| `orbit_editor/scales.py` | Scale mode |
-| `orbit_editor/presets.py` | `.json` and `.syx` files |
-| `orbit_editor/midi_win.py` | Windows MIDI (`winmm.dll` through `ctypes`) |
-| `orbit_editor/device.py` | Read and write the mapping, with verification |
-| `orbit_editor/link.py` | Automatic linking and live writes |
-| `orbit_editor/render.py` | Anti-aliased drawings with Pillow |
-| `orbit_editor/gui.py` | Main window (CustomTkinter) |
-| `orbit_editor/cli.py` | Command-line tool |
-
 ## License
 
-[MIT](LICENSE)
+MIT — see [LICENSE](LICENSE).
