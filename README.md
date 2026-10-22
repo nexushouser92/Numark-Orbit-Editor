@@ -1,4 +1,4 @@
-# Orbit Editor (unofficial) · Numark Orbit MIDI mapping editor
+# Orbit Editor (Unofficial)
 
 A Windows editor for the MIDI mapping of the **Numark Orbit** controller, written from scratch. It
 changes the channel, note or CC, mode and color of every pad, plus the knobs and accelerometer of all
