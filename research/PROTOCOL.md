@@ -138,6 +138,14 @@ pads, knobs and the accelerometer are.
    with CC 9/10, CC 1–4 (channel 1) or CC 2 (channel 16), and the 240 bytes hold no color for them,
    so they seem fixed in the firmware.
 
+9. ✅ **Shoulder buttons and accelerometer** (`monitor_accelerometer.txt`, 2026-10-23): the left
+   shoulder sends note 3 and the right one note 4, on channel 16 (NoteOn 127 on press, NoteOff on
+   release). The accelerometer only sends while a shoulder is held (left = left-right axis, right =
+   forward-back) or latched with a double press: about 40 values per second, roughly 6–101.
+10. ✅ **Wheel LEDs** follow only the physical wheel: no note, CC, pitch bend or aftertouch sent to the
+    Orbit moved them (probe of CC 1–4 on channels 1–4, every CC on channel 16, pitch bend,
+    aftertouch and notes 0–35).
+
 ## Still unconfirmed
 
 - Whether the protocol behaves the same through the **wireless receiver** as through the USB cable.

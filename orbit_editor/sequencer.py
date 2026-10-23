@@ -5,7 +5,12 @@
   Pad held + wheel            velocity of that step (it is turned on if it was off)
   Wheel                       with the internal clock: the tempo; when the DAW sends the clock (and
                               so sets the tempo): the velocity of every step of the bank's track
-  Accelerometer               passed through to the output unchanged
+  K1-K4                       turn track 1-4 on / off. Every press also toggles the K's own LED, so
+                              the tracks start off with the LEDs: LED lit = track playing
+  Right shoulder held + tilt  beat repeat: the step playing when it began is repeated, faster the
+                              more the Orbit is tilted forward or back (1/16, 1/32, 1/48)
+  Left shoulder held + tilt   filter: left-right tilt sends CC filter_cc (74, cutoff, by default) on
+                              the selected track's channel, for a DAW or synth to map
 Note, channel and swing are set in the window.
 The pads show the pattern live: the track's color for a step that is on (brighter = louder), white for
 the playhead. The Orbit has no transport buttons, so Play / Stop of the internal clock are in the window;
@@ -49,6 +54,19 @@ DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO = 120, 40, 240
 FIRST_NOTE = protocol.FACTORY_FIRST_NOTE   # pad p of the sequencer mapping plays note 36 + p
 WHEEL_CCS = protocol.FACTORY_KNOB_CCS      # the wheel on K1-K4
 BANK_BUTTON = (0xBF, 1)                    # CC 1 on channel 16, value = bank 1-4
+K_BUTTON = (0xBF, 2)                       # CC 2 on channel 16, value = K 1-4
+# Measured on a real Orbit (research/monitor_accelerometer.txt): the shoulder buttons send note 3
+# (left) and 4 (right) on channel 16; the accelerometer only sends while one is held (or latched with
+# a double press), about 40 values per second, roughly 6-101.
+SHOULDER_LEFT, SHOULDER_RIGHT = 3, 4
+AXIS_CCS = protocol.FACTORY_AXIS_CCS       # (left-right, forward-back)
+REPEAT_CC = AXIS_CCS[1]
+FILTER_AXIS_CC = AXIS_CCS[0]
+DEFAULT_FILTER_CC = 74                     # sound controller 5: cutoff on most synths
+FILTER_GAIN = 3                            # filter CC change per accelerometer step
+# Beat repeat: tilt (distance from where the Orbit was when the shoulder was pressed) -> clock ticks
+# between repeats. 6 ticks = 1/16, 3 = 1/32, 2 = 1/48.
+REPEAT_BANDS = ((18, 2), (11, 3), (5, 6))
 
 # Change per wheel tick (the relative wheel sends +1 / -1 per tick, more when turned fast).
 VELOCITY_PER_TICK = 2
@@ -111,14 +129,23 @@ def wheel_delta(value):
     return value if value < 64 else value - 128
 
 
+def repeat_ticks(tilt):
+    """Clock ticks between beat repeats for a tilt (0 = not tilted enough: no repeat)."""
+    for limit, ticks in REPEAT_BANDS:
+        if abs(tilt) >= limit:
+            return ticks
+    return 0
+
+
 def sequencer_config(config):
     """The mapping the Orbit holds while sequencing: bank b's pads on channel b, notes 36-51,
-    momentary and unlit (the sequencer lights them), the wheel relative on CC 1-4. The user's
-    accelerometer is kept, so it can be passed through."""
+    momentary and unlit (the sequencer lights them), the wheel relative on CC 1-4, the
+    accelerometer on channel b with CC 9 / 10."""
     seq = copy.deepcopy(config)
     for b, bank in enumerate(seq.banks):
         bank.pads = [protocol.Pad(b, FIRST_NOTE + p, False, 0) for p in range(STEPS)]
         bank.knobs = [protocol.Knob(b, cc, True) for cc in WHEEL_CCS]
+        bank.axes = [protocol.Axis(b, cc) for cc in AXIS_CCS]
     return seq
 
 
@@ -136,6 +163,10 @@ class Sequencer:
         self.notes = list(DEFAULT_NOTES)
         self.channels = [DEFAULT_CHANNEL] * TRACKS
         self.solo = [False] * TRACKS
+        self.mute = [False] * TRACKS  # K1-K4 on the Orbit, or the M buttons in the window
+        self.filter_cc = DEFAULT_FILTER_CC
+        self.filter_held = False    # left shoulder held: left-right tilt is the filter
+        self._filter_base = None
         self.swing = 0              # swing level, 0-MAX_SWING
         self.swing_eighths = False  # swing the off-beat 8ths (steps 3, 7, ...) instead of the 16ths
         self.tempo = DEFAULT_TEMPO  # BPM of the internal clock
@@ -147,6 +178,11 @@ class Sequencer:
         self._sounding = []         # (channel, note, tick of its note-off)
         self._previewing = []       # (channel, note) of note previews, released by end_preview()
         self._held = {}             # (track, step) of pads held down -> True once the wheel moved
+        self.repeat_held = False    # right shoulder held: tilting forward / back is a beat repeat
+        self.repeat = 0             # clock ticks between beat repeats, 0 = off
+        self._tilt_base = None      # forward-back value when the shoulder was pressed
+        self._repeat_step = None    # the step being repeated
+        self._repeat_tick = 0       # tick of the next repeat
         self.version = 0            # bumped on every change the window should redraw
 
     # ------------------------------------------------------------------ settings
@@ -155,7 +191,9 @@ class Sequencer:
         return {"steps": [[int(s) for s in row] for row in self.steps], "notes": list(self.notes),
                 "velocity": [list(row) for row in self.velocity], "channels": list(self.channels),
                 "swing": self.swing, "swing_eighths": int(self.swing_eighths), "tempo": self.tempo,
-                "solo": [int(s) for s in self.solo], "selected": self.selected}
+                "solo": [int(s) for s in self.solo], "mute": [int(m) for m in self.mute],
+                "filter_cc": self.filter_cc,
+                "selected": self.selected}
 
     def load_dict(self, data):
         try:
@@ -163,6 +201,8 @@ class Sequencer:
             notes = [min(127, max(0, int(n))) for n in data["notes"]][:TRACKS]
             channels = [min(15, max(0, int(c))) for c in data.get("channels", [])][:TRACKS]
             solo = [bool(s) for s in data.get("solo", [])][:TRACKS]
+            mute = [bool(m) for m in data.get("mute", [])][:TRACKS]
+            filter_cc = min(127, max(0, int(data.get("filter_cc", DEFAULT_FILTER_CC))))
             selected = int(data.get("selected", 0))
             velocity = [[min(127, max(1, int(v))) for v in row][:STEPS]
                         for row in data.get("velocity", [])][:TRACKS]
@@ -178,6 +218,8 @@ class Sequencer:
         self.notes[:len(notes)] = notes
         self.channels[:len(channels)] = channels
         self.solo[:len(solo)] = solo
+        self.mute[:len(mute)] = mute
+        self.filter_cc = filter_cc
         self.swing = swing
         self.swing_eighths = eighths
         self.tempo = tempo
@@ -222,6 +264,24 @@ class Sequencer:
     def toggle_solo(self, track):
         self.solo[track] = not self.solo[track]
         self.version += 1
+        return []
+
+    def toggle_mute(self, track):
+        self.mute[track] = not self.mute[track]
+        self.version += 1
+        return []
+
+    def mute_all(self, muted=True):
+        """All tracks on or off (the sequencer starts with them off, like the K LEDs)."""
+        self.mute = [muted] * TRACKS
+        self.version += 1
+        return []
+
+    def set_filter_cc(self, cc):
+        cc = min(127, max(0, int(cc)))
+        if self.filter_cc != cc:
+            self.filter_cc = cc
+            self.version += 1
         return []
 
     def clear_track(self, track):
@@ -297,8 +357,21 @@ class Sequencer:
         kind, channel = status & 0xF0, status & 0x0F
         if (status, data1) == BANK_BUTTON:
             return self.select(data2 - 1) if 1 <= data2 <= TRACKS else []
+        if (status, data1) == K_BUTTON:
+            return self.toggle_mute(data2 - 1) if 1 <= data2 <= TRACKS else []
         if status == 0xBF:
-            return []                   # the K buttons: the wheel does the same on every K
+            return []
+        if channel == 15 and kind in (0x80, 0x90) and data1 in (SHOULDER_LEFT, SHOULDER_RIGHT):
+            held = kind == 0x90 and data2 > 0
+            if data1 == SHOULDER_RIGHT:
+                self._hold_repeat(held)
+            else:
+                self.filter_held, self._filter_base = held, None
+            return []
+        if kind == 0xB0 and channel < TRACKS and data1 == REPEAT_CC and self.repeat_held:
+            return self._tilt(data2)
+        if kind == 0xB0 and channel < TRACKS and data1 == FILTER_AXIS_CC and self.filter_held:
+            return self._filter(data2)
         is_pad = kind in (0x80, 0x90) and channel < TRACKS and FIRST_NOTE <= data1 < FIRST_NOTE + STEPS
         if is_pad:
             return self._pad(channel, data1 - FIRST_NOTE, kind == 0x90 and data2 > 0)
@@ -317,6 +390,35 @@ class Sequencer:
         if turned is False:             # pressed and released without turning the wheel
             actions += self.toggle_step(track, step)
         return actions
+
+    def _hold_repeat(self, held):
+        self.repeat_held = held
+        self._tilt_base = None
+        if not held:
+            self._set_repeat(0)
+
+    def _tilt(self, value):
+        """Forward-back tilt while the right shoulder is held: the beat repeat rate."""
+        if self._tilt_base is None:
+            self._tilt_base = value     # where the Orbit is held counts as level
+        self._set_repeat(repeat_ticks(value - self._tilt_base))
+        return []
+
+    def _filter(self, value):
+        """Left-right tilt while the left shoulder is held: the filter CC, 64 where the tilt began."""
+        if self._filter_base is None:
+            self._filter_base = value
+        level = min(127, max(0, 64 + (value - self._filter_base) * FILTER_GAIN))
+        return [("out", 0xB0 | self.channels[self.selected], self.filter_cc, level)]
+
+    def _set_repeat(self, ticks):
+        if ticks == self.repeat:
+            return
+        if ticks and not self.repeat:   # starting: repeat the step playing now, from the next tick
+            self._repeat_step = max(0, self.position)
+            self._repeat_tick = self._ticks + 1
+        self.repeat = ticks
+        self.version += 1
 
     @property
     def wheel_sets_tempo(self):
@@ -382,7 +484,14 @@ class Sequencer:
         return actions + (self._column(old) if old >= 0 else [])
 
     def _audible(self, track):
-        return self.solo[track] or not any(self.solo)
+        return not self.mute[track] and (self.solo[track] or not any(self.solo))
+
+    def _play_step(self, s, actions):
+        for track in range(TRACKS):
+            if self.steps[track][s] and self._audible(track):
+                channel, note = self.channels[track], self.notes[track]
+                actions.append(("out", 0x90 | channel, note, self.velocity[track][s]))
+                self._sounding.append((channel, note, self._ticks + min(GATE_TICKS, self.repeat or GATE_TICKS)))
 
     def _tick(self):
         if not self.playing:
@@ -397,16 +506,18 @@ class Sequencer:
             if old >= 0 and old != step:
                 actions += self._column(old)
             actions += self._column(step)
+        if self.repeat:                 # beat repeat: the held step instead of the pattern
+            if self._ticks >= self._repeat_tick:
+                self._repeat_tick = self._ticks + self.repeat
+                actions += self._release()
+                self._play_step(self._repeat_step, actions)
+            return actions
         current = self._ticks // TICKS_PER_STEP
         for absolute in (current, current - 1):     # a 1/8 swing can push a note into the next step
             s = absolute % STEPS
             if absolute < 0 or absolute * TICKS_PER_STEP + swing_delay(self.swing, self.swing_eighths, s) != self._ticks:
                 continue
-            for track in range(TRACKS):
-                if self.steps[track][s] and self._audible(track):
-                    channel, note = self.channels[track], self.notes[track]
-                    actions.append(("out", 0x90 | channel, note, self.velocity[track][s]))
-                    self._sounding.append((channel, note, self._ticks + GATE_TICKS))
+            self._play_step(s, actions)
         return actions
 
     def _release(self, now=None):
@@ -417,6 +528,8 @@ class Sequencer:
 
     def all_notes_off(self):
         self._held.clear()
+        self.repeat_held, self.repeat = False, 0
+        self.filter_held = False
         return self._release() + self.end_preview()
 
 

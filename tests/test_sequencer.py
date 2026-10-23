@@ -55,7 +55,7 @@ class ConfigTests(unittest.TestCase):
                              [(b, 36 + p, False, 0) for p in range(16)])
             self.assertEqual([(k.channel, k.cc, k.relative) for k in bank.knobs],
                              [(b, cc, True) for cc in (1, 2, 3, 4)])
-        self.assertEqual(seq.banks[1].axes[0].cc, 77)       # the user's accelerometer stays
+        self.assertEqual([(a.channel, a.cc) for a in seq.banks[1].axes], [(1, 9), (1, 10)])
         self.assertEqual(user.banks[2].pads[5].color, 48)   # the user's mapping is untouched
         self.assertTrue(sequencer.is_sequencer_config(seq))
         self.assertFalse(sequencer.is_sequencer_config(user))
@@ -120,12 +120,20 @@ class PadTests(unittest.TestCase):
         self.assertEqual(self.seq.tempo, sequencer.DEFAULT_TEMPO + 1)
         self.assertEqual(self.seq.velocity[0][0], sequencer.VELOCITY)
 
-    def test_bank_buttons_and_ignored_k_buttons(self):
+    def test_bank_buttons_and_k_mutes(self):
         self.seq.device_message(CC16, 1, 3)
         self.assertEqual(self.seq.selected, 2)
-        self.assertEqual(self.seq.device_message(CC16, 2, 4), [])   # K buttons: not passed through
         self.seq.device_message(CC16, 1, 9)                  # out of range: ignored
         self.assertEqual(self.seq.selected, 2)
+        self.assertEqual(self.seq.device_message(CC16, 2, 4), [])
+        self.assertEqual(self.seq.mute, [False, False, False, True])
+        self.seq.device_message(CC16, 2, 4)
+        self.assertEqual(self.seq.mute, [False] * 4)
+
+    def test_shoulders_are_not_passed_through(self):
+        for status in (0x9F, 0x8F):
+            for note in (3, 4):
+                self.assertEqual(self.seq.device_message(status, note, 127), [])
 
     def test_other_messages_pass_through(self):
         self.assertEqual(self.seq.device_message(0xB0, 9, 64), [("out", 0xB0, 9, 64)])     # accelerometer
@@ -164,6 +172,60 @@ class WheelTests(unittest.TestCase):
         for _ in range(100):
             wheel(self.seq, 3, 0, 127)
         self.assertEqual(self.seq.velocity[3], [1] * 16)
+
+
+class PerformanceTests(unittest.TestCase):
+    def setUp(self):
+        self.seq = Sequencer()
+
+    def test_muted_track_is_silent(self):
+        self.seq.steps[0][0] = self.seq.steps[1][0] = True
+        self.seq.toggle_mute(0)
+        self.seq.clock_message(START)
+        self.assertEqual(outs(ticks(self.seq, 1)), [(0x99, 38, 100)])
+
+    def test_beat_repeat(self):
+        self.seq.steps[0][2] = True
+        self.seq.clock_message(START)
+        ticks(self.seq, 2 * sequencer.TICKS_PER_STEP + 1)            # step 3 has just played
+        self.seq.device_message(0x9F, 4, 127)                         # right shoulder held
+        self.seq.device_message(0xB0, 10, 50)                         # level: no repeat yet
+        self.assertEqual(self.seq.repeat, 0)
+        self.seq.device_message(0xB0, 10, 63)                         # tilted 13: 1/32
+        self.assertEqual(self.seq.repeat, 3)
+        notes = [n for n in outs(ticks(self.seq, 12)) if n[0] == 0x99]
+        self.assertEqual(notes, [(0x99, 36, 100)] * 4)                # step 3, every 3 ticks
+        self.seq.device_message(0xB0, 10, 70)                         # tilted 20: 1/48
+        self.assertEqual(self.seq.repeat, 2)
+        self.seq.device_message(0x8F, 4, 0)                           # released: the pattern again
+        self.assertEqual(self.seq.repeat, 0)
+        self.assertFalse(self.seq.repeat_held)
+
+    def test_tilt_without_the_shoulder_passes_through(self):
+        self.assertEqual(self.seq.device_message(0xB0, 10, 90), [("out", 0xB0, 10, 90)])
+        self.assertEqual(self.seq.repeat, 0)
+
+    def test_repeat_ticks(self):
+        self.assertEqual([sequencer.repeat_ticks(t) for t in (0, 4, -5, 11, -17, 18, 90)], [0, 0, 6, 3, 3, 2, 2])
+
+    def test_left_shoulder_filter(self):
+        self.seq.channels[2] = 3
+        self.seq.select(2)
+        self.assertEqual(self.seq.device_message(0xB0, 9, 60), [("out", 0xB0, 9, 60)])   # not held: as is
+        self.seq.device_message(0x9F, 3, 127)
+        self.assertEqual(outs(self.seq.device_message(0xB0, 9, 60)), [(0xB3, 74, 64)])  # where it began
+        self.assertEqual(outs(self.seq.device_message(0xB0, 9, 70)), [(0xB3, 74, 94)])
+        self.assertEqual(outs(self.seq.device_message(0xB0, 9, 0)), [(0xB3, 74, 0)])
+        self.seq.set_filter_cc(20)
+        self.assertEqual(outs(self.seq.device_message(0xB0, 9, 60)), [(0xB3, 20, 64)])
+        self.seq.device_message(0x8F, 3, 0)
+        self.assertFalse(self.seq.filter_held)
+
+    def test_mute_all(self):
+        self.seq.mute_all()
+        self.assertEqual(self.seq.mute, [True] * 4)
+        self.seq.device_message(CC16, 2, 2)                           # K2: track 2 on
+        self.assertEqual(self.seq.mute, [True, False, True, True])
 
 
 class PlaybackTests(unittest.TestCase):

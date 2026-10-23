@@ -61,6 +61,7 @@ REPAINT_DELAY_MS = int(midi_win.QUIET_AFTER_RECEIVE * 1000) + 100
 NOTE_NAMES = protocol.NOTE_NAMES
 
 
+REPEAT_INK = "#ff9500"  # system orange: what the hardware is doing (beat repeat)
 TRACK_COLUMN = 416        # width of the track controls left of the step grid
 
 
@@ -604,10 +605,15 @@ class App(ctk.CTkFrame):
                                  font=(FONT, 12, "bold"), **PUSH,
                                  command=lambda tr=track: self.seq_runner.post(self.seq.toggle_solo, tr))
             solo.pack(side="left", anchor="n", padx=(0, 4), pady=(render.TILE_PAD + pad + 1, 0))
-            clear = ctk.CTkButton(line, text=t("clear"), width=60, height=30, corner_radius=7, font=(FONT, 12),
+            mute = ctk.CTkButton(line, text=t("mute"), width=30, height=30, corner_radius=7,
+                                 font=(FONT, 12, "bold"), **PUSH,
+                                 command=lambda tr=track: self.seq_runner.post(self.seq.toggle_mute, tr))
+            mute.pack(side="left", anchor="n", padx=(0, 4), pady=(render.TILE_PAD + pad + 1, 0))
+            clear = ctk.CTkButton(line, text="✕", width=30, height=30, corner_radius=7, font=(FONT, 12),
                                   **PUSH, command=lambda tr=track: self.seq_runner.post(self.seq.clear_track, tr))
             clear.pack(side="left", anchor="n", pady=(render.TILE_PAD + pad + 1, 0))
-            self.seq_rows.append(dict(name=name, note=note, note_name=note_name, channel=channel, solo=solo))
+            self.seq_rows.append(dict(name=name, note=note, note_name=note_name, channel=channel, solo=solo,
+                                      mute=mute))
         width = int((render.STEPS_W + 2 * render.TILE_PAD) * self.s)
         height = int((render.STEPS_H + 2 * render.TILE_PAD) * self.s)
         self.step_view = ImageView(inner, width, height)
@@ -619,14 +625,21 @@ class App(ctk.CTkFrame):
         help_card.pack(fill="x", pady=(12, 0))
         grid = ctk.CTkFrame(help_card, fg_color="transparent")
         grid.pack(fill="x", padx=20, pady=(0, 14))
-        grid.columnconfigure((0, 1), weight=1, uniform="help")
+        grid.columnconfigure((0, 1, 2), weight=1, uniform="help")
         for i, (head, key) in enumerate((("help_pads_head", "help_pads"), ("help_hold_head", "help_hold"),
-                                         ("help_wheel_head", "help_wheel"), ("help_accel_head", "help_accel"))):
+                                         ("help_wheel_head", "help_wheel"), ("help_accel_head", "help_accel"),
+                                         ("help_filter_head", "help_filter"))):
             cell = ctk.CTkFrame(grid, fg_color="transparent")
-            cell.grid(row=i // 2, column=i % 2, sticky="nw", pady=4, padx=(0, 20))
+            cell.grid(row=i // 3, column=i % 3, sticky="nw", pady=4, padx=(0, 18))
             ctk.CTkLabel(cell, text=t(head), font=(FONT, 13, "bold"), text_color=TEXT, anchor="w",
                          height=20).pack(anchor="w")
-            self._label(cell, t(key), anchor="w", justify="left", wraplength=560, height=18).pack(anchor="w")
+            self._label(cell, t(key), anchor="w", justify="left", wraplength=400).pack(anchor="w")
+        row = ctk.CTkFrame(cell, fg_color="transparent")     # the filter's CC, under its help text
+        row.pack(anchor="w", pady=(4, 0))
+        self._label(row, t("filter_cc")).pack(side="left")
+        self.seq_filter_cc = Spin(row, 0, 127, lambda v: self.seq_runner.post(self.seq.set_filter_cc, v), width=40)
+        self.seq_filter_cc.on_invalid = lambda: self.seq.filter_cc
+        self.seq_filter_cc.pack(side="left", padx=(8, 0))
 
     # ------------------------------------------------------------------ editing
     def _apply(self, action):
@@ -989,6 +1002,8 @@ class App(ctk.CTkFrame):
             self.show(t("seq_port_error", err=e), ERROR)
             return
         self.seq_on = True
+        # Every K press toggles both its LED and its track: the tracks start off, like the LEDs.
+        self.seq_runner.post(self.seq.mute_all, True)
         # Keep the user's mapping in the settings file: if the app ends without stopping the
         # sequencer, the next start finds the Orbit still holding the sequencer mapping and puts it back.
         self.seq_settings["backup"] = sequencer.encode_backup(self.state.config)
@@ -1079,9 +1094,13 @@ class App(ctk.CTkFrame):
                                                      self.seq_clock_menu.configure(state="disabled" if v else "normal")))
         status = self.sequencer_status()
         self._show("seq_status", status, lambda v: self.seq_status.configure(text=v[0], text_color=v[1]))
-        self._show("seq_wheel", internal, lambda v: self.seq_wheel.configure(
-            text=t("wheel_now", what=t("wheel_tempo" if v else "wheel_velocity"))))
+        rates = {6: "1/16", 3: "1/32", 2: "1/48"}
+        self._show("seq_wheel", (internal, seq.repeat), lambda v: self.seq_wheel.configure(
+            text=t("repeat_now", rate=rates.get(v[1], "")) if v[1]
+            else t("wheel_now", what=t("wheel_tempo" if v[0] else "wheel_velocity")),
+            text_color=REPEAT_INK if v[1] else ACCENT))
         self._show("seq_tempo", seq.tempo, self.seq_tempo.set)
+        self._show("seq_filter_cc", seq.filter_cc, self.seq_filter_cc.set)
         self._show("seq_swing", seq.swing, lambda v: self.seq_swing.set(self.swing_names[v]))
         self._show("seq_swing_res", seq.swing_eighths, lambda v: self.seq_swing_res.set("1/8" if v else "1/16"))
         for track, row in enumerate(self.seq_rows):
@@ -1091,6 +1110,9 @@ class App(ctk.CTkFrame):
             self._show(f"seq_note{track}", seq.notes[track], lambda v, r=row: (
                 r["note"].set(v), r["note_name"].configure(text=protocol.note_name(v))))
             self._show(f"seq_ch{track}", seq.channels[track], lambda v, r=row: r["channel"].set(str(v + 1)))
+            self._show(f"seq_mute{track}", seq.mute[track], lambda v, r=row: r["mute"].configure(
+                fg_color=WARN if v else BUTTON, hover_color=WARN if v else BUTTON_HOVER,
+                border_color=WARN if v else BUTTON_EDGE, text_color="#ffffff" if v else TEXT))
             self._show(f"seq_solo{track}", seq.solo[track], lambda v, r=row: r["solo"].configure(
                 fg_color=ACCENT if v else BUTTON, hover_color=ACCENT_HOVER if v else BUTTON_HOVER,
                 border_color=ACCENT if v else BUTTON_EDGE, text_color="#ffffff" if v else TEXT))

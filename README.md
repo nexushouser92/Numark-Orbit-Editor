@@ -50,7 +50,14 @@ color, brighter for louder steps, and the playhead moving across them.
 | Bank buttons 1–4 | Choose the track |
 | Hold a pad + turn the wheel | Velocity of that step |
 | Wheel | **Tempo** with the internal clock; when a DAW sends the clock (and so sets the tempo), the **velocity** of the track |
-| Accelerometer | Passed through to the output |
+| K1–K4 | Turn track 1–4 on or off. The tracks start off when the sequencer starts, like the K LEDs (LED lit = playing) |
+| Right shoulder + tilt forward/back | **Beat repeat**: repeats the current step, faster the more you tilt (1/16, 1/32, 1/48) |
+| Left shoulder + tilt left/right | **Filter**: sends a CC (74, cutoff, by default; set it in the window) on the selected track's channel, to map in a DAW or synth |
+
+> [!NOTE]
+> The Orbit only reports a K button when you switch to a different K: pressing the same K twice toggles
+> its LED but sends nothing the second time. To turn a track back on, go through another K, or use the
+> **M** buttons in the window (they also bring the LEDs and the tracks back in step).
 
 In the window: the note and MIDI channel of each track (drums on channel 10 by default), solo, clear,
 swing (50–75 %, on 16ths or 8ths), tempo, and Play / Stop. Click a step to turn it on or off, and use
