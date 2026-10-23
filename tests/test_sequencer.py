@@ -120,14 +120,15 @@ class PadTests(unittest.TestCase):
         self.assertEqual(self.seq.tempo, sequencer.DEFAULT_TEMPO + 1)
         self.assertEqual(self.seq.velocity[0][0], sequencer.VELOCITY)
 
-    def test_bank_buttons_and_k_mutes(self):
+    def test_bank_buttons_and_k_solos(self):
         self.seq.device_message(CC16, 1, 3)
         self.assertEqual(self.seq.selected, 2)
         self.seq.device_message(CC16, 1, 9)                  # out of range: ignored
         self.assertEqual(self.seq.selected, 2)
         self.assertEqual(self.seq.device_message(CC16, 2, 4), [])
-        self.assertEqual(self.seq.mute, [False, False, False, True])
+        self.assertEqual(self.seq.solo, [False, False, False, True])
         self.seq.device_message(CC16, 2, 4)
+        self.assertEqual(self.seq.solo, [False] * 4)
         self.assertEqual(self.seq.mute, [False] * 4)
 
     def test_shoulders_are_not_passed_through(self):
@@ -224,7 +225,7 @@ class PerformanceTests(unittest.TestCase):
     def test_mute_all(self):
         self.seq.mute_all()
         self.assertEqual(self.seq.mute, [True] * 4)
-        self.seq.device_message(CC16, 2, 2)                           # K2: track 2 on
+        self.seq.toggle_mute(1)
         self.assertEqual(self.seq.mute, [True, False, True, True])
 
 

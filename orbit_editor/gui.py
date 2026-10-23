@@ -1002,8 +1002,6 @@ class App(ctk.CTkFrame):
             self.show(t("seq_port_error", err=e), ERROR)
             return
         self.seq_on = True
-        # Every K press toggles both its LED and its track: the tracks start off, like the LEDs.
-        self.seq_runner.post(self.seq.mute_all, True)
         # Keep the user's mapping in the settings file: if the app ends without stopping the
         # sequencer, the next start finds the Orbit still holding the sequencer mapping and puts it back.
         self.seq_settings["backup"] = sequencer.encode_backup(self.state.config)

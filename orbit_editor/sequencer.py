@@ -5,8 +5,8 @@
   Pad held + wheel            velocity of that step (it is turned on if it was off)
   Wheel                       with the internal clock: the tempo; when the DAW sends the clock (and
                               so sets the tempo): the velocity of every step of the bank's track
-  K1-K4                       turn track 1-4 on / off. Every press also toggles the K's own LED, so
-                              the tracks start off with the LEDs: LED lit = track playing
+  K1-K4                       solo of track 1-4 on / off. Every press also toggles the K's own LED,
+                              and both start off: LED lit = track soloed
   Right shoulder held + tilt  beat repeat: the step playing when it began is repeated, faster the
                               more the Orbit is tilted forward or back (1/16, 1/32, 1/48)
   Left shoulder held + tilt   filter: left-right tilt sends CC filter_cc (74, cutoff, by default) on
@@ -358,7 +358,7 @@ class Sequencer:
         if (status, data1) == BANK_BUTTON:
             return self.select(data2 - 1) if 1 <= data2 <= TRACKS else []
         if (status, data1) == K_BUTTON:
-            return self.toggle_mute(data2 - 1) if 1 <= data2 <= TRACKS else []
+            return self.toggle_solo(data2 - 1) if 1 <= data2 <= TRACKS else []
         if status == 0xBF:
             return []
         if channel == 15 and kind in (0x80, 0x90) and data1 in (SHOULDER_LEFT, SHOULDER_RIGHT):
