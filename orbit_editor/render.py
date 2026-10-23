@@ -13,11 +13,13 @@ from . import colors, protocol
 
 SUPERSAMPLE = 3
 
-PANEL = (25, 28, 34)
-PANEL_EDGE = (44, 49, 58)
-PAD_OFF = (47, 51, 59)
-SELECTED = (255, 255, 255)
-PRESSED = (61, 139, 253)
+# macOS light look, as in the nanoKONTROL 2 editor.
+PANEL = (245, 245, 247)
+PANEL_EDGE = (217, 217, 217)
+PAD_OFF = (226, 226, 230)
+SELECTED = (0, 122, 255)        # system blue
+PRESSED = (255, 149, 0)         # system orange, the color of what the hardware lights
+MUTED = (128, 128, 128)
 
 # Pad grid geometry in logical pixels (multiplied by the screen scaling).
 PAD = 104
@@ -124,6 +126,87 @@ def pad_grid(pads, selected=None, pressed=(), scale=1.0):
         tile = _tile(pad.color, pad.note, i + 1, i == selected, i in pressed, scale)
         x1, y1, _, _ = pad_rect(i, scale)
         img.alpha_composite(tile, (int(round(x1 - TILE_PAD * scale)), int(round(y1 - TILE_PAD * scale))))
+    return img
+
+
+# Sequencer step grid geometry in logical pixels: 4 tracks x 16 steps, steps grouped by 4,
+# with the step numbers above them.
+STEP = 44
+STEP_GAP = 5
+STEP_GROUP_GAP = 10
+STEP_ROW = 56
+STEP_RADIUS = 10
+STEP_NUMBERS = 24               # height of the step-number row
+STEPS_W = 15 * (STEP + STEP_GAP) + 3 * STEP_GROUP_GAP + STEP
+STEPS_H = STEP_NUMBERS + 3 * STEP_ROW + STEP
+PLAYHEAD = PRESSED
+
+
+def step_rect(track, step, scale=1.0):
+    """(x1, y1, x2, y2) of a step cell in the final (scaled) step grid image."""
+    x1 = (step * (STEP + STEP_GAP) + (step // 4) * STEP_GROUP_GAP) * scale
+    y1 = (STEP_NUMBERS + track * STEP_ROW) * scale
+    return x1, y1, x1 + STEP * scale, y1 + STEP * scale
+
+
+def step_at(x, y, scale=1.0):
+    """(track, step) under a click at (x, y) in the final image (which has a TILE_PAD margin), or None."""
+    x, y = x - TILE_PAD * scale, y - TILE_PAD * scale
+    for track in range(protocol.NUM_BANKS):
+        for step in range(protocol.PADS_PER_BANK):
+            x1, y1, x2, y2 = step_rect(track, step, scale)
+            if x1 <= x <= x2 and y1 <= y <= y2:
+                return track, step
+    return None
+
+
+@functools.lru_cache(maxsize=512)
+def _step_tile(color, label, playhead, scale):
+    """One step cell, drawn large and scaled down; the playhead is a white ring."""
+    k = scale * SUPERSAMPLE
+    side = STEP + 2 * TILE_PAD
+    img = Image.new("RGBA", (int(side * k), int(side * k)), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    x1 = y1 = TILE_PAD * k
+    x2 = y2 = (TILE_PAD + STEP) * k
+    rgb = screen_rgb(color)
+    if playhead:
+        o = 4 * k
+        draw.rounded_rectangle((x1 - o, y1 - o, x2 + o, y2 + o), radius=int((STEP_RADIUS + 4) * k),
+                               outline=PLAYHEAD, width=max(2, int(2.5 * k)))
+    draw.rounded_rectangle((x1, y1, x2, y2), radius=int(STEP_RADIUS * k), fill=rgb)
+    if label:
+        draw.text(((x1 + x2) / 2, (y1 + y2) / 2), label, font=_font(int(11 * k), bold=True),
+                  fill=_text_fill(rgb), anchor="mm")
+    return img.resize((int(side * scale), int(side * scale)), Image.LANCZOS)
+
+
+@functools.lru_cache(maxsize=40)
+def _step_numbers(position, scale, background):
+    """The 1-16 row above the steps; the playing step's number in the playhead color."""
+    k = scale * SUPERSAMPLE
+    img = Image.new("RGBA", (int(STEPS_W * k), int(STEP_NUMBERS * k)), background + (0,))
+    draw = ImageDraw.Draw(img)
+    for step in range(protocol.PADS_PER_BANK):
+        x1, _, x2, _ = step_rect(0, step, k)
+        draw.text(((x1 + x2) / 2, STEP_NUMBERS * k * 0.45), str(step + 1),
+                  font=_font(int(12 * k), bold=step == position or step % 4 == 0),
+                  fill=PLAYHEAD if step == position else MUTED, anchor="mm")
+    return img.resize((int(STEPS_W * scale), int(STEP_NUMBERS * scale)), Image.LANCZOS)
+
+
+def step_grid(cells, position=-1, scale=1.0, background=PANEL):
+    """Image of the sequencer: cells[track][step] = (Orbit color byte, label); `position` is the playhead."""
+    pad = TILE_PAD * scale
+    img = Image.new("RGBA", (int(STEPS_W * scale + 2 * pad), int(STEPS_H * scale + 2 * pad)),
+                    background + (255,))
+    numbers = _step_numbers(position, scale, background)
+    img.alpha_composite(numbers, (int(round(pad)), int(round(pad))))
+    for track, row in enumerate(cells):
+        for step, (color, label) in enumerate(row):
+            tile = _step_tile(color, label, step == position, scale)
+            x1, y1, _, _ = step_rect(track, step, scale)
+            img.alpha_composite(tile, (int(round(x1)), int(round(y1))))
     return img
 
 

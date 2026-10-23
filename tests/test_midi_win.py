@@ -110,6 +110,47 @@ class SendTests(unittest.TestCase):
         self.assertAlmostEqual(pauses[0], midi_win.QUIET_AFTER_RECEIVE - 0.2)
         self.assertEqual(len(fake.sent), 3)
 
+    def test_send_short_packs_the_bytes(self):
+        fake = FakeWinmm()
+        with midi_win.open_orbit(fake) as port:
+            port.send_short(0x91, 37, 48)
+        self.assertEqual(fake.shorts, [0x91 | (37 << 8) | (48 << 16)])
+
+    def test_send_short_error(self):
+        fake = FakeWinmm()
+        fake.short_res = 6
+        with midi_win.open_orbit(fake) as port:
+            with self.assertRaises(midi_win.MidiError):
+                port.send_short(0x90, 36, 3)
+
+    def test_quiet_time_after_short_messages(self):
+        """A SysEx right after pad-color notes was lost by a real Orbit: it waits a little first."""
+        fake = FakeWinmm()
+        with midi_win.open_orbit(fake) as port:
+            now, pauses = [100.0], []
+            port._clock, port._sleep = lambda: now[0], pauses.append
+            port.send_short(0x90, 36, 3)
+            now[0] = 100.05
+            port.send(protocol.READ_REQUEST)
+            now[0] = 101.0
+            port.send(protocol.READ_REQUEST)  # long after the note: no pause
+        self.assertEqual(len(pauses), 1)
+        self.assertAlmostEqual(pauses[0], midi_win.QUIET_AFTER_SHORT - 0.05)
+
+    def test_one_sided_ports(self):
+        fake = FakeWinmm(ins=("loopMIDI clock",), outs=("loopMIDI notes",))
+        out_only = midi_win.WinMidiPort(None, 0, fake)
+        out_only.send_short(0x99, 36, 100)
+        out_only.close()
+        self.assertIsNone(fake.opened_in)
+        in_only = midi_win.WinMidiPort(0, None, fake)
+        with self.assertRaises(midi_win.MidiError):
+            in_only.send_short(0x90, 36, 1)
+        with self.assertRaises(midi_win.MidiError):
+            in_only.send(protocol.READ_REQUEST)
+        in_only.close()
+        self.assertEqual((fake.in_closed, fake.out_closed), (1, 1))
+
     def test_long_msg_error(self):
         fake = FakeWinmm(long_msg=11)
         with midi_win.open_orbit(fake) as port:

@@ -37,6 +37,8 @@ class OrbitLink:
         self._next_poll = 0.0
         self._stop = threading.Event()
         self._thread = None
+        self.listener = None        # listener(status, d1, d2) gets notes/CCs right away (the sequencer)
+        self._sysex = threading.Lock()  # held while reading/writing: no pad colors may be sent then
 
     # ------------------------------------------------------------- called by the window
     @property
@@ -56,6 +58,23 @@ class OrbitLink:
 
     def request_read(self):
         self._want_read = True
+
+    def send_short(self, status, data1, data2):
+        """Send a note/CC to the Orbit (lights a pad live). False, without waiting, if it is not linked,
+        a mapping is being read or written (the Orbit garbles a dump when notes arrive meanwhile), or
+        sending failed."""
+        if not self._sysex.acquire(blocking=False):
+            return False
+        try:
+            port = self.port
+            if port is None:
+                return False
+            port.send_short(status, data1, data2)
+        except (midi_win.MidiError, OSError):
+            return False
+        finally:
+            self._sysex.release()
+        return True
 
     @property
     def has_pending(self):
@@ -127,11 +146,15 @@ class OrbitLink:
             self._read()
 
     def _on_short(self, status, data1, data2):
+        listener = self.listener
+        if listener is not None:
+            listener(status, data1, data2)
         self.events.put(("midi", (status, data1, data2)))
 
     def _read(self):
         try:
-            config = device.read_config(self.port)
+            with self._sysex:
+                config = device.read_config(self.port)
         except (device.DeviceError, midi_win.MidiError, OSError) as e:
             self._drop(e)
             return
@@ -140,7 +163,8 @@ class OrbitLink:
     def _write(self, config):
         self.events.put(("writing", None))
         try:
-            device.write_config(self.port, config)
+            with self._sysex:
+                device.write_config(self.port, config)
         except device.VerifyError as e:
             self._clear_pending(config)
             self.events.put(("write_failed", e))

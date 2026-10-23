@@ -153,7 +153,8 @@ class GuiTests(unittest.TestCase):
         def ask(title, text):
             self.yes_no.append(text)
             return self.answer
-        defaults = dict(lang=lang, link=self.link, autostart=False, ask_yes_no=ask, clock=self.clock)
+        defaults = dict(lang=lang, link=self.link, autostart=False, ask_yes_no=ask, clock=self.clock,
+                        seq_settings={}, save_seq_settings=lambda data: None)
         defaults.update(kw)
         app = gui.App(self.root, **defaults)
         if connect:
@@ -190,11 +191,11 @@ class GuiTests(unittest.TestCase):
     def test_english(self):
         app = self.make_app(lang="en")
         self.assertIn("Orbit linked", self.status(app))
-        self.assertEqual(self.root.title(), "MIDI mapping editor · Unofficial project")
+        self.assertEqual(self.root.title(), "MIDI Mapping Editor · Numark Orbit")
 
     def test_title(self):
         self.make_app()
-        self.assertEqual(self.root.title(), "Editor de mapeo MIDI · Proyecto no oficial")
+        self.assertEqual(self.root.title(), "Editor de mapeo MIDI · Numark Orbit")
 
     # --- live preview
     def test_every_change_reaches_the_orbit(self):
@@ -400,7 +401,8 @@ class GuiTests(unittest.TestCase):
         app.on_scale_change()
         app.save_file()
         other = gui.App(self.root, lang="es", link=link.OrbitLink(opener=lambda: FakeOrbit(), lister=self.lister),
-                        autostart=False, ask_open=lambda **kw: os.path.join(self.dir, "out.json"))
+                        autostart=False, ask_open=lambda **kw: os.path.join(self.dir, "out.json"),
+                        seq_settings={}, save_seq_settings=lambda data: None)
         other.open_file()
         self.assertEqual(other.state.config, app.state.config)
         self.assertEqual(other.state.scales, app.state.scales)

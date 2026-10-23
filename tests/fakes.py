@@ -16,7 +16,12 @@ class FakeOrbit:
         self.respond, self.apply_writes = respond, apply_writes
         self.noise, self.corrupt = list(noise), corrupt
         self.sent, self.inbox = [], []
+        self.shorts = []          # (status, data1, data2) notes/CCs sent to the Orbit
         self.closed = False
+        self.on_short = None
+
+    def send_short(self, status, data1=0, data2=0):
+        self.shorts.append((status, data1, data2))
 
     def send(self, data):
         self.sent.append(bytes(data))
@@ -65,6 +70,8 @@ class FakeWinmm:
         self.available = []       # input headers the "driver" may fill
         self.prepared_in = []
         self.sent = []
+        self.shorts = []          # packed short messages sent with midiOutShortMsg
+        self.short_res = 0
         self.added = self.out_resets = 0
         self.in_closed = self.out_closed = 0
         self.out_prepared = self.out_unprepared = 0
@@ -156,6 +163,10 @@ class FakeWinmm:
         if self.on_send:
             self.on_send(self, data)
         return 0
+
+    def midiOutShortMsg(self, h, packed):
+        self.shorts.append(packed)
+        return self.short_res
 
     def midiOutUnprepareHeader(self, h, hdr_ref, size):
         if self.still_playing:

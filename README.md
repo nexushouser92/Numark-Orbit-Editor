@@ -2,13 +2,20 @@
 
 A Windows editor for the MIDI mapping of the **Numark Orbit** controller, written from scratch. It
 changes the channel, note or CC, mode and color of every pad, plus the knobs and accelerometer of all
-4 banks, and applies each change to the Orbit right away.
+4 banks, and applies each change to the Orbit right away. It also turns the Orbit into a
+**4-track step sequencer**.
 
 > [!NOTE]
 > This is an unofficial project, not affiliated with or endorsed by Numark or inMusic. It was built
 > for interoperability, without copying any code or assets from the original editor.
 
-![Orbit Editor window](docs/screenshot.png)
+**Mapping**, with scale mode on bank 4:
+
+![Orbit Editor: mapping page with scale mode](docs/screenshot.png)
+
+**Sequencer**, playing:
+
+![Orbit Editor: sequencer page](docs/screenshot-sequencer.png)
 
 ---
 
@@ -31,10 +38,37 @@ changes the channel, note or CC, mode and color of every pad, plus the knobs and
 * **Presets**: save and open `.json` (scales included) or `.syx` (the Orbit's own SysEx dump).
 * **English and Spanish**, following your Windows language.
 
+### Sequencer
+
+Inspired by the sequencer of the nanoKONTROL 2 editor: **4 tracks × 16 steps**, where each bank of the
+Orbit is a track and each pad a step. The pads light up live with the pattern: each track in its
+color, brighter for louder steps, and the playhead moving across them.
+
+| On the Orbit | What it does |
+|---|---|
+| Pad (press and release) | Turns that step on or off |
+| Bank buttons 1–4 | Choose the track |
+| Hold a pad + turn the wheel | Velocity of that step |
+| Wheel | **Tempo** with the internal clock; when a DAW sends the clock (and so sets the tempo), the **velocity** of the track |
+| Accelerometer | Passed through to the output |
+
+In the window: the note and MIDI channel of each track (drums on channel 10 by default), solo, clear,
+swing (50–75 %, on 16ths or 8ths), tempo, and Play / Stop. Click a step to turn it on or off, and use
+the mouse wheel over it to change its velocity.
+
+* **Internal clock**: plays on its own through any MIDI output, e.g. a USB synth or the
+  *Microsoft GS Wavetable Synth* built into Windows.
+* **DAW clock**: follows your DAW's MIDI clock, Play, Stop and song position through a
+  [loopMIDI](https://www.tobias-erichsen.de/software/loopmidi.html) port (free; the app links to it).
+
+While the sequencer runs, the Orbit holds a sequencer mapping; your own mapping comes back as soon as
+you stop it or close the app (and on the next start, if the app was closed unexpectedly).
+
 ## Requirements
 
 * Windows 10 / 11
 * A Numark Orbit connected by mini-USB cable or through its USB wireless receiver.
+* For the sequencer with a DAW only: [loopMIDI](https://www.tobias-erichsen.de/software/loopmidi.html).
 
 ## How to use
 

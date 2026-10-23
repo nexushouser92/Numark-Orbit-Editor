@@ -23,6 +23,9 @@ SEND_TIMEOUT = 2.0
 # Measured on a real Orbit (2026-10-19): a message sent right after it finished sending a dump is
 # answered late (read) or lost, leaving the Orbit unresponsive for a while (write). 0.5 s is enough.
 QUIET_AFTER_RECEIVE = 0.5
+# Seen with the sequencer (2026-10-23): a SysEx sent right after a burst of pad-color notes was lost
+# and the Orbit stopped answering. A short pause after the last note avoids it.
+QUIET_AFTER_SHORT = 0.15
 
 DEFAULT_PORT_NAME = "ORBIT"
 
@@ -90,6 +93,8 @@ def open_orbit(winmm=None, needle=DEFAULT_PORT_NAME):
 
 
 class WinMidiPort:
+    """in_index or out_index may be None to open only one side (the sequencer's note and clock ports)."""
+
     def __init__(self, in_index, out_index, winmm=None):
         self._w = _winmm(winmm)
         self._hin = wintypes.HANDLE()
@@ -99,6 +104,7 @@ class WinMidiPort:
         self._lock = threading.Lock()
         self._chunks = queue.Queue()     # (bytes, header address) filled by the winmm callback
         self._last_receive = None        # arrival time of the latest SysEx bytes from the device
+        self._last_short = None          # when the latest note/CC was sent to the device
         self._clock, self._sleep = time.monotonic, time.sleep
         self._pending = bytearray()      # bytes of a SysEx message not yet complete
         self._messages = []              # complete messages not yet returned by receive()
@@ -106,11 +112,13 @@ class WinMidiPort:
         self.on_short = None             # on_short(status, data1, data2) for notes/CCs, on a winmm thread
         self._callback = MIDIINPROC(self._on_midi_in)  # keep a reference while the port is open
         try:
-            self._open_input(in_index)
-            r = self._w.midiOutOpen(ctypes.byref(self._hout), out_index, 0, 0, 0)
-            if r != MMSYSERR_NOERROR:
-                raise MidiError(f"midiOutOpen failed ({r}); is another program using the device?")
-            self._out_open = True
+            if in_index is not None:
+                self._open_input(in_index)
+            if out_index is not None:
+                r = self._w.midiOutOpen(ctypes.byref(self._hout), out_index, 0, 0, 0)
+                if r != MMSYSERR_NOERROR:
+                    raise MidiError(f"midiOutOpen failed ({r}); is another program using the device?")
+                self._out_open = True
         except BaseException:
             self.close()
             raise
@@ -148,6 +156,8 @@ class WinMidiPort:
     def send(self, data):
         """Send one SysEx message and wait until the driver has finished with it."""
         data = bytes(data)
+        if not self._out_open:
+            raise MidiError("this port was opened without an output")
         if not data or data[0] != SYSEX_START or data[-1] != SYSEX_END:
             raise MidiError("only complete SysEx messages (F0 ... F7) can be sent")
         buf = ctypes.create_string_buffer(data, len(data))
@@ -171,13 +181,25 @@ class WinMidiPort:
             if timed_out:
                 raise MidiError("the MIDI driver did not finish sending in time")
 
+    def send_short(self, status, data1=0, data2=0):
+        """Send one note/CC/clock message. Waits for a SysEx being sent to finish, so it never lands
+        in the middle of one."""
+        if not self._out_open:
+            raise MidiError("this port was opened without an output")
+        with self._lock:
+            r = self._w.midiOutShortMsg(self._hout, status | (data1 << 8) | (data2 << 16))
+            self._last_short = self._clock()
+        if r != MMSYSERR_NOERROR:
+            raise MidiError(f"midiOutShortMsg failed ({r})")
+
     def _wait_quiet(self):
-        """Leave the device QUIET_AFTER_RECEIVE seconds after the last bytes it sent."""
-        last = self._last_receive
-        if last is not None:
-            wait = last + QUIET_AFTER_RECEIVE - self._clock()
-            if wait > 0:
-                self._sleep(wait)
+        """Leave the device QUIET_AFTER_RECEIVE seconds after the last bytes it sent, and
+        QUIET_AFTER_SHORT seconds after the last note/CC sent to it."""
+        for last, quiet in ((self._last_receive, QUIET_AFTER_RECEIVE), (self._last_short, QUIET_AFTER_SHORT)):
+            if last is not None:
+                wait = last + quiet - self._clock()
+                if wait > 0:
+                    self._sleep(wait)
 
     def receive(self, timeout):
         """Return the next complete SysEx message, or None if none arrives within timeout seconds."""

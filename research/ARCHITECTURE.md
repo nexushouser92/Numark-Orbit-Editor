@@ -17,7 +17,9 @@ orbit_editor/
 ├─ device.py     read_config() and write_config(verify=True) on any port-like object
 ├─ link.py       Keeps the Orbit linked: automatic search, read on link, debounced live writes
 │                (0.5 s after the last change), incoming notes/CCs as events
-├─ render.py     Pillow drawings, supersampled for smooth edges; pads are cached as tiles
+├─ render.py     Pillow drawings, supersampled for smooth edges; pads and steps are cached as tiles
+├─ sequencer.py  4-track x 16-step sequencer: pure logic (Sequencer) and the MIDI thread
+│                (SequencerRunner); the sequencer mapping the Orbit holds while it runs
 ├─ i18n.py       English and Spanish texts, chosen from the Windows language
 ├─ gui.py        Main window
 └─ cli.py        Command-line tool (ports, read, backup, show, convert, write)
@@ -42,3 +44,14 @@ research/        Protocol notes, wireless research, recordings and the scripts u
 | 3 | `midi_win.py`, `device.py`, command-line tool, tests with simulated MIDI |
 | 4 | First window (tkinter) |
 | 5 | Modern window (CustomTkinter + Pillow), automatic link with live preview, color wheel, brightness, scale mode, README, MIT license, GitHub Actions, v1.0.0 |
+| 6 | Sequencer (inspired by the nanoKONTROL 2 editor's), live pad colors, macOS light look shared with the nanoKONTROL 2 and Swing editors, vector logo and icons, v1.1.0 |
+
+Assets: `assets/fonts` (Inter, SIL OFL), and `assets/logo.png`, `icon.ico` (window) and `app.ico`
+(the `.exe`, on a navy background), all drawn by `docs/tools/make_logo.py`.
+
+## Sequencer timing rules (seen on a real Orbit)
+
+- No pad colors are sent while a mapping is read or written (`OrbitLink._sysex`): a SysEx arriving
+  right after a burst of notes was lost, and the Orbit stopped answering.
+- A SysEx waits `QUIET_AFTER_SHORT` (0.15 s) after the last note sent to the Orbit.
+- After each write, the pads are repainted only once the Orbit listens again (0.6 s).
